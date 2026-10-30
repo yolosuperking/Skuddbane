@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#151a17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Skuddbane">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Skuddbane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: instrument panel — sticky tab bar, scope view at the heart of the shoot tab, data rows below */
+:root{
+ --bg:#e9ece8;--panel:#f7f8f5;--line:#cfd5cc;--fg:#1d2420;--muted:#5d675f;
+ --accent:#b8321f;--accent-ink:#fff;--field:#ffffff;--ok:#2f7a45;--warn:#a86a00;--bad:#b8321f;
+ --glass1:#eef1ea;--glass2:#c9d0c3;--ret:#141814;
+ --f-disp:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+ --f-body:"Barlow",system-ui,-apple-system,sans-serif;
+ --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#151a17;--panel:#1d2420;--line:#323b35;--fg:#e4e9e3;--muted:#9aa59c;
+ --accent:#ec5a40;--accent-ink:#1a0e0a;--field:#111613;--ok:#5cba78;--warn:#e0a53a;--bad:#ef6a52;
+ --glass1:#dfe4da;--glass2:#aeb7a7;--ret:#121512;color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#151a17;--panel:#1d2420;--line:#323b35;--fg:#e4e9e3;--muted:#9aa59c;
+ --accent:#ec5a40;--accent-ink:#1a0e0a;--field:#111613;--ok:#5cba78;--warn:#e0a53a;--bad:#ef6a52;
+ --glass1:#dfe4da;--glass2:#aeb7a7;--ret:#121512;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.hwrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 0}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-disp);font-weight:700;font-size:22px;letter-spacing:.02em;margin:0;text-transform:uppercase}
+h1 span{color:var(--accent)}
+.brand small{color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--f-disp)}
+nav{display:flex;gap:2px;margin-top:8px;overflow-x:auto}
+nav button{flex:1;font:600 14px var(--f-disp);letter-spacing:.08em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 6px 9px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
+main{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
+section.tab{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.lbl{font:600 11.5px var(--f-disp);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px;min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px}
+input,select,textarea{font:500 15px var(--f-body);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-num);font-size:14px}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--accent)}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.b{font:600 14px var(--f-disp);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:7px;padding:9px 12px;cursor:pointer}
+button.b.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.b.danger{color:var(--bad)}
+button.b:active{transform:translateY(1px)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+/* scope */
+.scopewrap{position:relative;width:100%;max-width:520px;margin:0 auto;aspect-ratio:1;max-height:min(92vw,520px)}
+canvas#scope{width:100%;height:100%;display:block;touch-action:none}
+.dist{display:flex;align-items:center;gap:10px}
+.dist .big{font:700 40px/1 var(--f-disp);min-width:4.2ch}
+.dist .big small{font-size:18px;color:var(--muted);margin-left:2px}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ro{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.ro .v{font:600 24px/1.1 var(--f-num);font-variant-numeric:tabular-nums}
+.ro .s{font-size:13px;color:var(--muted)}
+.ro.key{border-color:var(--accent)}
+.ro.key .v{color:var(--accent)}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mini div{min-width:0}
+.mini .v{font:500 15px var(--f-num)}
+@media (max-width:440px){.mini{grid-template-columns:repeat(2,1fr)}.dist .big{font-size:34px}}
+.dial{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:40px;flex:none;font:600 20px var(--f-disp);border:1px solid var(--line);background:var(--field);color:var(--fg);border-radius:7px;cursor:pointer}
+.stepper output{flex:1;text-align:center;font:600 16px var(--f-num)}
+.pill{display:inline-block;font:600 12px var(--f-disp);letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
+.legend{display:flex;gap:16px;justify-content:center;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-family:var(--f-num);font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font:600 11.5px var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.zero td{color:var(--accent);font-weight:600}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pitem{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--field);border:1px solid var(--line);border-radius:8px}
+.pitem .t{flex:1;min-width:0}
+.pitem .t b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem .t span{font-size:13px;color:var(--muted)}
+.ptabs{display:flex;gap:6px;flex-wrap:wrap}
+.ptabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.formgrid .wide{grid-column:1/-1}
+h2{font:700 17px var(--f-disp);letter-spacing:.04em;text-transform:uppercase;margin:0}
+.sp{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+textarea{font-family:var(--f-num);font-size:12px;min-height:90px}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-weight:600;font-size:14px;z-index:20}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="hwrap">
+ <div class="brand"><h1>Skudd<span>bane</span></h1><small>FFP · MIL</small></div>
+ <nav role="tablist">
+  <button role="tab" data-tab="skyt" aria-selected="true">Skyt</button>
+  <button role="tab" data-tab="tabell" aria-selected="false">Tabell</button>
+  <button role="tab" data-tab="profiler" aria-selected="false">Profiler</button>
+  <button role="tab" data-tab="forhold" aria-selected="false">Forhold</button>
+ </nav>
+</div></header>
+<main>
+<!-- SKYT -->
+<section class="tab" id="tab-skyt">
+ <div class="card row">
+  <label class="f"><span class="lbl">Våpen</span><select id="selWeapon"></select></label>
+  <label class="f"><span class="lbl">Ladning</span><select id="selLoad"></select></label>
+ </div>
+ <div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <div class="dist"><div class="big num" id="distOut">300<small>m</small></div>
+   <input type="range" id="dist" min="0" max="1200" step="5" value="300" aria-label="Avstand"></div>
+  <div class="scopewrap"><canvas id="scope" aria-label="Siktebilde med treffpunkt"></canvas></div>
+  <div class="legend"><span><i style="background:#d6261b"></i>Treffpunkt når du sikter i senter</span><span><i style="border:2px solid #1f6fd6"></i>Holdpunkt</span></div>
+ </div>
+ <div class="readout">
+  <div class="ro key"><div class="lbl">Elevasjon</div><div class="v" id="roElev">–</div><div class="s" id="roElevC">–</div></div>
+  <div class="ro key"><div class="lbl">Vind</div><div class="v" id="roWind">–</div><div class="s" id="roWindC">–</div></div>
+ </div>
+ <div class="card mini">
+  <div><div class="lbl">Fall</div><div class="v" id="mDrop">–</div></div>
+  <div><div class="lbl">Fart</div><div class="v" id="mVel">–</div></div>
+  <div><div class="lbl">Energi</div><div class="v" id="mEn">–</div></div>
+  <div><div class="lbl">Flytid</div><div class="v" id="mTof">–</div></div>
+  <div><div class="lbl">V0 brukt</div><div class="v" id="mV0">–</div></div>
+  <div><div class="lbl">Avdrift vind</div><div class="v" id="mDrift">–</div></div>
+  <div><div class="lbl">Spinnavdrift</div><div class="v" id="mSpin">–</div></div>
+  <div><div class="lbl">Stabilitet Sg</div><div class="v" id="mSg">–</div></div>
+ </div>
+ <div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <div class="sp"><h2>Vind</h2><span class="hint">Klokke: 3 = fra høyre, 9 = fra venstre</span></div>
+  <div class="row">
+   <label class="f"><span class="lbl">Fart m/s</span><input type="number" id="windSpd" min="0" max="30" step="0.5" value="4"></label>
+   <label class="f"><span class="lbl">Fra klokka</span><select id="windClock"></select></label>
+  </div>
+  <input type="range" id="windRange" min="0" max="15" step="0.5" value="4" aria-label="Vindstyrke">
+ </div>
+ <div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <div class="sp"><h2>Tårn</h2><span class="hint" id="clickInfo">0,1 mil per klikk</span></div>
+  <div class="dial">
+   <div><div class="lbl">Elevasjon (klikk opp)</div><div class="stepper"><button id="eMinus" aria-label="Elevasjon ned">−</button><output id="eOut" class="num">0</output><button id="ePlus" aria-label="Elevasjon opp">+</button></div></div>
+   <div><div class="lbl">Side (klikk høyre)</div><div class="stepper"><button id="wMinus" aria-label="Side venstre">−</button><output id="wOut" class="num">0</output><button id="wPlus" aria-label="Side høyre">+</button></div></div>
+  </div>
+  <div class="row"><button class="b pri" id="dialSolve">Still inn elevasjon</button><button class="b" id="dialAll">Still inn alt</button><button class="b" id="dialZero">Nullstill</button></div>
+  <p class="hint">Treffpunktet i siktet flytter seg når du klikker. Når den røde prikken står i senter treffer du der du sikter.</p>
+ </div>
+ <div class="card row">
+  <label class="f"><span class="lbl">Overstyr V0 (m/s)</span><input type="number" id="v0Over" placeholder="målt med kronograf"></label>
+  <label class="f"><span class="lbl">Skuddvinkel (°)</span><input type="number" id="angle" value="0" min="-60" max="60" step="1"></label>
+ </div>
+</section>
+
+<!-- TABELL -->
+<section class="tab" id="tab-tabell" hidden>
+ <div class="card row">
+  <label class="f"><span class="lbl">Fra (m)</span><input type="number" id="tFrom" value="100" step="25" min="0"></label>
+  <label class="f"><span class="lbl">Til (m)</span><input type="number" id="tTo" value="1000" step="50" min="50"></label>
+  <label class="f"><span class="lbl">Steg (m)</span><select id="tStep"><option>10</option><option>25</option><option selected>50</option><option>100</option></select></label>
+ </div>
+ <p class="hint" id="tblInfo"></p>
+ <div class="tblwrap"><table><thead><tr><th>m</th><th>Fall cm</th><th>Elev mil</th><th>Klikk</th><th>Vind mil</th><th>Vind cm</th><th>m/s</th><th>Joule</th><th>Tid s</th></tr></thead><tbody id="tbody"></tbody></table></div>
+</section>
+
+<!-- PROFILER -->
+<section class="tab" id="tab-profiler" hidden>
+ <div class="ptabs" id="ptabs">
+  <button class="b" data-kind="weapon" aria-pressed="true">Våpen</button>
+  <button class="b" data-kind="bullet" aria-pressed="false">Kuler</button>
+  <button class="b" data-kind="load" aria-pressed="false">Ladninger</button>
+ </div>
+ <div class="plist" id="plist"></div>
+ <button class="b" id="pNew">+ Ny</button>
+ <form class="card" id="pForm" hidden style="display:flex;flex-direction:column;gap:12px">
+  <h2 id="pFormTitle">Nytt våpen</h2>
+  <div class="formgrid" id="pFields"></div>
+  <div id="pStab"></div>
+  <div class="row"><button class="b pri" type="submit">Lagre</button><button class="b" type="button" id="pCancel">Avbryt</button></div>
+ </form>
+ <div class="card" style="display:flex;flex-direction:column;gap:10px">
+  <h2>Sikkerhetskopi</h2>
+  <p class="hint">Profilene lagres i denne nettleseren på denne enheten. Kopier teksten under og ta vare på den, eller lim inn en tidligere kopi og trykk Importer.</p>
+  <textarea id="backup" aria-label="Sikkerhetskopi"></textarea>
+  <div class="row"><button class="b" id="bCopy">Kopier</button><button class="b" id="bImport">Importer</button></div>
+ </div>
+</section>
+
+<!-- FORHOLD -->
+<section class="tab" id="tab-forhold" hidden>
+ <div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <h2>Vær</h2>
+  <div class="formgrid">
+   <label class="f"><span class="lbl">Temperatur °C</span><input type="number" id="temp" value="10" step="1"></label>
+   <label class="f"><span class="lbl">Lufttrykk hPa (stasjon)</span><input type="number" id="press" value="1013" step="1"></label>
+   <label class="f"><span class="lbl">Luftfuktighet %</span><input type="number" id="hum" value="60" step="5" min="0" max="100"></label>
+   <label class="f"><span class="lbl">Høyde over havet m</span><input type="number" id="alt" value="0" step="10"></label>
+  </div>
+  <button class="b" id="altToP">Beregn trykk fra høyde</button>
+  <p class="hint">Stasjonstrykk er det faktiske trykket der du står. Værmeldingens trykk er omregnet til havnivå, så bruk knappen over hvis du bare vet høyden.</p>
+  <p class="hint num" id="airInfo"></p>
+ </div>
+ <div class="card" style="display:flex;flex-direction:column;gap:12px">
+  <h2>Løpslengde</h2>
+  <label class="f"><span class="lbl">Endring i V0 per cm løp (m/s)</span><input type="number" id="mpsCm" value="3" step="0.1" min="0"></label>
+  <p class="hint">Brukes når våpenets løp er kortere eller lengre enn løpet ladningens V0 er oppgitt for. 3 m/s per cm er et vanlig gjennomsnitt for riflepatroner, men varierer med patron og krutt. Målt V0 fra kronograf er alltid best.</p>
+ </div>
+</section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script>
+const G1=[[0,.2629],[.05,.2558],[.1,.2487],[.15,.2413],[.2,.2344],[.25,.2278],[.3,.2214],[.35,.2155],[.4,.2104],[.45,.2061],[.5,.2032],[.55,.2020],[.6,.2034],[.7,.2165],[.725,.2230],[.75,.2313],[.775,.2417],[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.125,.6053],[1.15,.6191],[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.45,.6607],[1.5,.6573],[1.55,.6528],[1.6,.6474],[1.7,.6347],[1.8,.6210],[1.9,.6072],[2,.5934],[2.1,.5804],[2.2,.5685],[2.3,.5577],[2.4,.5481],[2.5,.5397],[2.6,.5325],[2.8,.5211],[3,.5133],[3.2,.5084],[3.5,.5040],[4,.5006],[4.5,.4993],[5,.4988]];
+const G7=[[0,.1198],[.5,.1197],[.6,.1194],[.7,.1194],[.75,.1197],[.8,.1210],[.825,.1215],[.85,.1236],[.875,.1259],[.9,.1294],[.925,.1349],[.95,.1494],[.975,.2045],[1,.3803],[1.025,.4043],[1.05,.4034],[1.075,.3999],[1.1,.3961],[1.15,.3880],[1.2,.3799],[1.3,.3637],[1.4,.3486],[1.5,.3348],[1.6,.3221],[1.7,.3105],[1.8,.2998],[1.9,.2898],[2,.2805],[2.2,.2638],[2.4,.2495],[2.6,.2370],[2.8,.2260],[3,.2163],[3.5,.1960],[4,.1800],[5,.1580]];
+function cd(t,m){if(m<=t[0][0])return t[0][1];for(let i=1;i<t.length;i++){if(m<=t[i][0]){const[a,b]=t[i-1],[c,d]=t[i];return b+(d-b)*(m-a)/(c-a)}}return t[t.length-1][1]}
+function air(T,P,H){const Tk=T+273.15;const es=6.1078*Math.pow(10,7.5*T/(T+237.3));const pv=H/100*es;const pd=P-pv;return{rho:(pd*100)/(287.058*Tk)+(pv*100)/(461.495*Tk),c:331.3*Math.sqrt(1+T/273.15)}}
+// returns {path:[...] in m relative to LOS per metre, t:[...], v:[...]}
+function fly(o,ang,maxX,rec){const tab=o.model==='G7'?G7:G1;const bc=o.bc*703.0696;const k=o.rho*Math.PI/(8*bc);
+ let x=0,y=-o.sh,vx=o.v0*Math.cos(ang),vy=o.v0*Math.sin(ang),t=0;const dt=0.0002,g=9.80665;
+ const out=rec?{y:new Float64Array(maxX+1),t:new Float64Array(maxX+1),v:new Float64Array(maxX+1)}:null;
+ if(rec){out.y[0]=y;out.v[0]=o.v0}
+ let next=1;
+ while(x<maxX&&t<15){const v=Math.hypot(vx,vy);const a=k*cd(tab,v/o.c)*v*v;
+  const ax=-a*vx/v,ay=-a*vy/v-g;const px=x,py=y,pt=t,pv=v;
+  vx+=ax*dt;vy+=ay*dt;x+=vx*dt;y+=vy*dt;t+=dt;
+  if(rec){const nv=Math.hypot(vx,vy);while(next<=maxX&&x>=next){const f=(next-px)/(x-px);out.y[next]=py+(y-py)*f;out.t[next]=pt+dt*f;out.v[next]=pv+(nv-pv)*f;next++}}
+  if(vx<20)break}
+ if(rec){for(;next<=maxX;next++){out.y[next]=NaN;out.t[next]=NaN;out.v[next]=NaN}return out}
+ return y}
+function zeroAngle(o){let lo=-0.02,hi=0.06;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(fly(o,m,o.zero,false)>0)hi=m;else lo=m}return(lo+hi)/2}
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const fmt=(n,d=1)=>Number.isFinite(n)?n.toFixed(d).replace('.',','):'–';
+const SAMPLE={weapons:[{id:'w1',name:'Eksempel: .308 rifle',caliber:'.308 Win',barrel:51,twist:11,dir:'H',sh:45,zero:100,click:0.1,notes:''}],
+ bullets:[{id:'b1',name:'Eksempel: 175 gr match HPBT',diam:7.82,weight:175,length:31.5,bc:0.243,model:'G7'}],
+ loads:[{id:'l1',name:'Eksempel: 175 gr fabrikk',bulletId:'b1',powder:'',charge:'',oal:'',v0:792,refBarrel:61,refTemp:15,tempSens:0.6,notes:'V0 oppgitt for 24" løp'}]};
+let db=store.get('sb-db',null)||JSON.parse(JSON.stringify(SAMPLE));
+const PRESETS={weapons:[{id:'w-xbolt655',name:'Browning X-Bolt 6,5x55',caliber:'6,5x55 Swedish',barrel:53,twist:8,dir:'H',sh:45,zero:100,click:0.1,notes:'Løpslengde varierer med modell (46–56 cm). Sjekk twist og siktehøyde på ditt eksemplar.'}],
+ bullets:[{id:'b-oryx156',name:'Norma Oryx 156 gr (6,5 mm)',diam:6.71,weight:156,length:30.7,bc:0.348,model:'G1'}],
+ loads:[{id:'l-oryx655',name:'Norma Oryx 6,5x55 156 gr',bulletId:'b-oryx156',powder:'Fabrikkpatron',charge:'',oal:'',v0:760,refBarrel:61,refTemp:15,tempSens:0,notes:'Norma oppgir V0 760 m/s med 61 cm (24") løp. Kulelengde er estimert.'}]};
+(function(){let seeded=store.get('sb-seeded',[]);let added=false;['weapons','bullets','loads'].forEach(k=>PRESETS[k].forEach(p=>{if(!seeded.includes(p.id)){if(!db[k].find(x=>x.id===p.id))db[k].push(JSON.parse(JSON.stringify(p)));seeded.push(p.id);added=true}}));
+ if(added){store.set('sb-seeded',seeded);store.set('sb-db',db);try{const s=JSON.parse(localStorage.getItem('sb-state')||'{}');s.weapon='w-xbolt655';s.load='l-oryx655';s.eClk=0;s.wClk=0;localStorage.setItem('sb-state',JSON.stringify(s))}catch(e){}}})();
+if(!store.get('sb-state',null))store.set('sb-state',{weapon:'w-xbolt655',load:'l-oryx655'});
+const DEF={weapon:'w1',load:'l1',dist:300,windSpd:4,windClock:9,temp:10,press:1013,hum:60,alt:0,mpsCm:3,eClk:0,wClk:0,v0Over:'',angle:0};
+let st=Object.assign({},DEF,store.get('sb-state',{}));
+const save=()=>{store.set('sb-db',db);store.set('sb-state',st)};
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>e.hidden=true,1800)}
+
+function miller(b,w,v,T,P){const d=b.diam/25.4,l=(b.length/25.4)/d,t=w.twist/d,m=+b.weight;
+ if(!(d>0&&l>0&&t>0&&m>0))return null;
+ let sg=30*m/(t*t*d*d*d*l*(1+l*l));sg*=Math.cbrt(v*3.28084/2800);
+ sg*=((T*9/5+32+460)/519)*(29.92/(P*0.02953));return sg}
+function sgPill(sg){if(sg==null)return'<span class="pill warn">mangler data</span>';
+ const c=sg<1?'bad':sg<1.4?'warn':'ok',t=sg<1?'ustabil':sg<1.4?'marginal':'stabil';return`<span class="num">${fmt(sg,2)}</span> <span class="pill ${c}">${t}</span>`}
+
+function current(){const w=db.weapons.find(x=>x.id===st.weapon)||db.weapons[0];const l=db.loads.find(x=>x.id===st.load)||db.loads[0];
+ const b=l&&db.bullets.find(x=>x.id===l.bulletId);return{w,l,b}}
+function baseV0(w,l){if(+st.v0Over>0)return +st.v0Over;let v=+l.v0;if(w.barrel&&l.refBarrel)v+=(w.barrel-l.refBarrel)*st.mpsCm;return v}
+let SOL=null;
+function solve(){const{w,l,b}=current();if(!w||!l||!b||!(+l.v0>0||+st.v0Over>0)||!(+b.bc>0)){SOL=null;return}
+ const v0z=baseV0(w,l);
+ const v0=+st.v0Over>0?v0z:v0z+(l.tempSens?(st.temp-(+l.refTemp||15))*l.tempSens:0);
+ const sh=(+w.sh||40)/1000,zero=Math.max(+w.zero||100,1);
+ const za=air(15,1013.25,50);const ang=zeroAngle({model:b.model,bc:+b.bc,v0:v0z,sh,zero,rho:za.rho,c:za.c});
+ const a=air(+st.temp,+st.press,+st.hum);const o={model:b.model,bc:+b.bc,v0,sh,zero,rho:a.rho,c:a.c};
+ const r=fly(o,ang,1600,true);const sg=miller(b,w,v0,+st.temp,+st.press);
+ SOL={w,l,b,v0,r,sg,a,click:+w.click||0.1}}
+function at(d){if(!SOL||d<=0)return null;const th=(+st.angle||0)*Math.PI/180;const dh=Math.max(1,Math.round(d*Math.cos(th)));
+ const r=SOL.r;if(dh>1600||!Number.isFinite(r.y[dh]))return null;
+ const y=r.y[dh],t=r.t[dh],v=r.v[dh];const cw=-st.windSpd*Math.sin(st.windClock*Math.PI/6);
+ const drift=cw*(t-dh/SOL.v0);let spin=0;if(SOL.sg)spin=1.25*(SOL.sg+1.2)*Math.pow(t,1.83)*0.0254*(SOL.w.dir==='V'?-1:1);
+ const lat=drift+spin;const m=SOL.b.weight*6.479891e-5;
+ return{d,y,t,v,drift,spin,lat,elevMil:-y/dh*1000,latMil:lat/d*1000,E:0.5*m*v*v}}
+
+/* ---------- scope ---------- */
+const cv=$('scope'),ctx=cv.getContext('2d');
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawScope(p){const dpr=window.devicePixelRatio||1,W=cv.clientWidth;if(!W)return;cv.width=cv.height=Math.round(W*dpr);
+ const S=cv.width,c=S/2,R=11,ppm=c*0.97/R;const X=m=>c+m*ppm,Y=m=>c-m*ppm;
+ ctx.clearRect(0,0,S,S);ctx.save();ctx.beginPath();ctx.arc(c,c,c*0.985,0,7);ctx.fillStyle='#0c0e0d';ctx.fill();
+ ctx.beginPath();ctx.arc(c,c,c*0.95,0,7);const g=ctx.createRadialGradient(c,c*0.9,c*0.1,c,c,c);g.addColorStop(0,cssv('--glass1'));g.addColorStop(1,cssv('--glass2'));ctx.fillStyle=g;ctx.fill();ctx.clip();
+ const ink=cssv('--ret');ctx.strokeStyle=ink;ctx.fillStyle=ink;const lw=Math.max(1,1.1*dpr);ctx.lineWidth=lw;ctx.lineCap='butt';
+ const line=(x1,y1,x2,y2)=>{ctx.beginPath();ctx.moveTo(X(x1),Y(y1));ctx.lineTo(X(x2),Y(y2));ctx.stroke()};
+ const fs=Math.max(8*dpr,ppm*0.42);ctx.font=`500 ${fs}px "IBM Plex Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+ // horizontal
+ line(-8,0,8,0);for(let i=-40;i<=40;i++){if(!i)continue;const m=i/5,maj=i%5===0;const h=maj?0.35:(i%5===0?.25:0.15);if(maj){line(m,h,m,-h);ctx.fillText(Math.abs(m),X(m),Y(0.75))}else line(m,0,m,-h)}
+ for(let i=-40;i<=40;i++){if(i%5)continue;}
+ for(let i=-16;i<=16;i++){if(i%2){const m=i/2;line(m,0.22,m,-0.22)}}
+ // posts
+ const pw=0.34;ctx.fillRect(X(9.5),Y(pw/2),X(R)-X(9.5),pw*ppm);ctx.fillRect(X(-R),Y(pw/2),X(-9.5)-X(-R),pw*ppm);
+ line(10,0.6,10,-0.6);line(-10,0.6,-10,-0.6);ctx.fillRect(X(-pw/2),Y(-10.6),pw*ppm,Y(-R)-Y(-10.6));line(-0.6,-10.9,0.6,-10.9);
+ // vertical up
+ line(0,0,0,4.4);for(let i=1;i<=22;i++){const m=i/5,maj=i%5===0;line(maj?-0.3:0,m,maj?0.3:0.16,m);if(maj)ctx.fillText(m,X(0.65),Y(m))}
+ ctx.strokeRect(X(-0.25),Y(5.4),0.5*ppm,1*ppm);
+ // vertical down
+ line(0,0,0,-10);for(let i=1;i<=50;i++){const m=-i/5,maj=i%5===0;line(maj?-0.3:-0.12,m,maj?0.3:0.12,m)}
+ // tree
+ for(let k=1;k<=10;k++){const hw=1.85+0.47*k,y=-k;for(let j=-Math.floor(hw*5);j<=Math.floor(hw*5);j++){if(!j)continue;const x=j/5;const big=j%5===0;ctx.beginPath();ctx.arc(X(x),Y(y),Math.max(big?1.6*dpr:0.9*dpr,ppm*(big?0.07:0.04)),0,7);ctx.fill()}
+  ctx.fillText(k,X(-hw-0.45),Y(y));ctx.fillText(k,X(hw+0.45),Y(y))}
+ // centre
+ ctx.fillStyle='#d6261b';ctx.beginPath();ctx.arc(c,c,Math.max(2*dpr,0.07*ppm),0,7);ctx.fill();
+ // labels
+ ctx.fillStyle=ink;ctx.textAlign='left';ctx.font=`600 ${fs*1.05}px "Barlow Semi Condensed",sans-serif`;ctx.fillText('MIL · FFP',X(-7.6),Y(7.2));
+ ctx.textAlign='right';ctx.fillText(st.dist+' m',X(7.6),Y(7.2));
+ if(p){const iy=-p.elevMil+st.eClk*SOL.click,ix=p.latMil+st.wClk*SOL.click;
+  const mark=(mx,my,fill)=>{let dx=mx,dy=my;const L=Math.hypot(dx,dy),max=R*0.9,out=L>max;if(out){dx=dx/L*max;dy=dy/L*max}
+   const px=X(dx),py=Y(dy),rr=Math.max(6*dpr,0.13*ppm);ctx.lineWidth=2*dpr;
+   if(fill){ctx.fillStyle='#d6261b';ctx.strokeStyle='#fff';ctx.beginPath();ctx.arc(px,py,rr,0,7);ctx.fill();ctx.stroke()}
+   else{ctx.strokeStyle='#1f6fd6';ctx.beginPath();ctx.arc(px,py,rr*1.25,0,7);ctx.stroke();ctx.beginPath();ctx.moveTo(px-rr*0.5,py);ctx.lineTo(px+rr*0.5,py);ctx.moveTo(px,py-rr*0.5);ctx.lineTo(px,py+rr*0.5);ctx.stroke()}
+   if(out){ctx.fillStyle=fill?'#d6261b':'#1f6fd6';ctx.textAlign='center';ctx.font=`700 ${fs}px "Barlow Semi Condensed",sans-serif`;ctx.fillText('UTENFOR',px,py+(dy>0?1:-1)*rr*2.4)}};
+  mark(-ix,-iy,false);mark(ix,iy,true)}
+ ctx.restore()}
+
+/* ---------- render ---------- */
+function dirTxt(v,pos,neg){return v>=0?pos:neg}
+function renderShoot(){solve();$('distOut').innerHTML=`${st.dist}<small>m</small>`;
+ const p=at(st.dist);const ck=SOL?SOL.click:0.1;$('clickInfo').textContent=`${fmt(ck,2)} mil per klikk`;
+ $('eOut').textContent=st.eClk;$('wOut').textContent=st.wClk;
+ if(!SOL){['roElev','roWind'].forEach(i=>$(i).textContent='–');$('roElevC').textContent='Velg våpen og ladning med kule';$('roWindC').textContent='';drawScope(null);return}
+ $('mV0').textContent=fmt(SOL.v0,0)+' m/s';$('mSg').innerHTML=sgPill(SOL.sg);
+ if(!p){['roElev','roWind'].forEach(i=>$(i).textContent='–');$('roElevC').textContent=st.dist?'Utenfor beregnet rekkevidde':'Sett avstand';$('roWindC').textContent='';
+  ['mDrop','mVel','mEn','mTof','mDrift','mSpin'].forEach(i=>$(i).textContent='–');drawScope(null);return}
+ const e=p.elevMil,wh=-p.latMil;
+ $('roElev').textContent=fmt(Math.abs(e),1)+' mil';$('roElevC').textContent=`${Math.round(Math.abs(e)/ck)} klikk ${dirTxt(e,'opp','ned')}`;
+ $('roWind').textContent=fmt(Math.abs(wh),1)+' mil '+(Math.abs(wh)<0.05?'':dirTxt(wh,'H','V'));$('roWindC').textContent=`${Math.round(Math.abs(wh)/ck)} klikk ${dirTxt(wh,'høyre','venstre')}`;
+ $('mDrop').textContent=fmt(p.y*100,0)+' cm';$('mVel').textContent=fmt(p.v,0)+' m/s';$('mEn').textContent=fmt(p.E,0)+' J';$('mTof').textContent=fmt(p.t,2)+' s';
+ $('mDrift').textContent=fmt(Math.abs(p.drift*100),0)+' cm '+(Math.abs(p.drift)<.005?'':dirTxt(p.drift,'H','V'));$('mSpin').textContent=fmt(Math.abs(p.spin*100),0)+' cm '+(Math.abs(p.spin)<.005?'':dirTxt(p.spin,'H','V'));
+ drawScope(p)}
+function renderTable(){solve();const tb=$('tbody');tb.innerHTML='';if(!SOL){$('tblInfo').textContent='Velg våpen og ladning først.';return}
+ $('tblInfo').textContent=`${SOL.w.name} · ${SOL.l.name} · V0 ${fmt(SOL.v0,0)} m/s · vind ${fmt(st.windSpd,1)} m/s fra kl. ${st.windClock} · ${st.temp} °C`;
+ const f=Math.max(0,+$('tFrom').value||0),t=Math.min(1500,+$('tTo').value||1000),s=+$('tStep').value||50;let h='';
+ for(let d=Math.ceil(f/s)*s||s;d<=t;d+=s){const p=at(d);if(!p)break;const z=d===(+SOL.w.zero);
+  h+=`<tr class="${z?'zero':''}"><td>${d}</td><td>${fmt(p.y*100,0)}</td><td>${fmt(p.elevMil,1)}</td><td>${Math.round(p.elevMil/SOL.click)}</td><td>${fmt(-p.latMil,1)}</td><td>${fmt(p.lat*100,0)}</td><td>${fmt(p.v,0)}</td><td>${fmt(p.E,0)}</td><td>${fmt(p.t,2)}</td></tr>`}
+ tb.innerHTML=h||'<tr><td colspan="9">Ingen rader</td></tr>'}
+function renderAir(){const a=air(+st.temp,+st.press,+st.hum);$('airInfo').textContent=`Lufttetthet ${fmt(a.rho,3)} kg/m³ · lydfart ${fmt(a.c,0)} m/s`}
+function fillSelects(){const sw=$('selWeapon'),sl=$('selLoad');
+ sw.innerHTML=db.weapons.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')||'<option value="">Ingen våpen lagret</option>';
+ sl.innerHTML=db.loads.map(l=>{const b=db.bullets.find(x=>x.id===l.bulletId);return`<option value="${l.id}">${esc(l.name)}${b?' – '+esc(b.name):''}</option>`}).join('')||'<option value="">Ingen ladninger lagret</option>';
+ if(!db.weapons.find(x=>x.id===st.weapon)&&db.weapons[0])st.weapon=db.weapons[0].id;if(!db.loads.find(x=>x.id===st.load)&&db.loads[0])st.load=db.loads[0].id;
+ sw.value=st.weapon;sl.value=st.load}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------- profiles ---------- */
+const SCHEMA={
+ weapon:{list:'weapons',t:'våpen',def:{dir:'H',zero:100,click:0.1,sh:45},fields:[['name','Navn','text',{wide:1}],['caliber','Kaliber','text'],['barrel','Løpslengde cm','number',{step:.1}],['twist','Twist 1:x (tommer)','number',{step:.5}],['dir','Riflingretning','select',[['H','Høyre'],['V','Venstre']]],['sh','Siktehøyde mm','number'],['zero','Innskutt avstand m','number'],['click','Klikkverdi mil','number',{step:.01}],['notes','Notater','text',{wide:1}]],
+  sub:o=>`${o.caliber||''} · ${o.barrel?fmt(+o.barrel,1)+' cm ('+fmt(o.barrel/2.54,1)+'")':'?'} · 1:${o.twist||'?'} · innskutt ${o.zero||'?'} m`},
+ bullet:{list:'bullets',t:'kule',def:{model:'G7'},fields:[['name','Navn','text',{wide:1}],['diam','Diameter mm','number',{step:.01}],['weight','Vekt grain','number',{step:.1}],['length','Lengde mm','number',{step:.1}],['bc','BC','number',{step:.001}],['model','Dragmodell','select',[['G7','G7'],['G1','G1']]]],
+  sub:o=>`${o.weight||'?'} gr · Ø${o.diam||'?'} mm · ${o.length||'?'} mm · BC ${o.bc||'?'} ${o.model}`},
+ load:{list:'loads',t:'ladning',def:{refTemp:15,tempSens:0.5},fields:[['name','Navn','text',{wide:1}],['bulletId','Kule','bullet'],['powder','Krutt','text'],['charge','Kruttmengde grain','text',{ph:'fra ladetabell'}],['oal','Patronlengde OAL mm','number',{step:.01}],['v0','V0 m/s','number'],['refBarrel','V0 gjelder for løp cm','number',{step:.1}],['refTemp','V0 gjelder ved °C','number'],['tempSens','Temp.-følsomhet m/s per °C','number',{step:.1}],['notes','Notater','text',{wide:1}]],
+  sub:o=>{const b=db.bullets.find(x=>x.id===o.bulletId);return`${b?b.name:'ingen kule'} · ${o.powder||'krutt ikke oppgitt'}${o.charge?' '+o.charge+' gr':''} · V0 ${o.v0||'?'} m/s @ ${o.refBarrel||'?'} cm`}}};
+let pKind='weapon',editing=null,pendingDel=null;
+function renderList(){const S=SCHEMA[pKind],items=db[S.list];const el=$('plist');
+ el.innerHTML=items.length?items.map(o=>{const sel=(pKind==='weapon'&&o.id===st.weapon)||(pKind==='load'&&o.id===st.load);
+  return`<div class="pitem"><div class="t"><b>${esc(o.name)}${sel?' <span class="pill ok">i bruk</span>':''}</b><span>${esc(S.sub(o))}</span></div>
+  ${pKind!=='bullet'&&!sel?`<button class="b" data-act="use" data-id="${o.id}">Bruk</button>`:''}<button class="b" data-act="edit" data-id="${o.id}">Endre</button><button class="b danger" data-act="del" data-id="${o.id}">${pendingDel===o.id?'Bekreft':'Slett'}</button></div>`}).join('')
+  :`<p class="hint">Ingen ${S.t==='kule'?'kuler':S.t==='ladning'?'ladninger':'våpen'} lagret ennå. Trykk «+ Ny» for å legge til.</p>`;
+ $('pNew').textContent='+ Ny '+S.t;$('backup').value=JSON.stringify(db)}
+function openForm(o){const S=SCHEMA[pKind];editing=o?o.id:null;const v=o||Object.assign({},S.def);
+ $('pFormTitle').textContent=(o?'Endre ':'Ny ')+S.t;
+ $('pFields').innerHTML=S.fields.map(([k,lab,type,opt])=>{const val=v[k]??'';let inp;
+  if(type==='select')inp=`<select id="pf_${k}">${opt.map(([a,b])=>`<option value="${a}"${a==val?' selected':''}>${b}</option>`).join('')}</select>`;
+  else if(type==='bullet')inp=`<select id="pf_${k}">${db.bullets.map(b=>`<option value="${b.id}"${b.id==val?' selected':''}>${esc(b.name)}</option>`).join('')||'<option value="">Lag en kule først</option>'}</select>`;
+  else inp=`<input id="pf_${k}" type="${type}" ${type==='number'?`step="${(opt&&opt.step)||1}" inputmode="decimal"`:''} value="${esc(val)}" placeholder="${(opt&&opt.ph)||''}">`;
+  return`<label class="f${opt&&opt.wide?' wide':''}"><span class="lbl">${lab}</span>${inp}</label>`}).join('');
+ $('pForm').hidden=false;updStab();$('pf_name').focus();$('pForm').scrollIntoView({block:'nearest'})}
+function readForm(){const S=SCHEMA[pKind],o={};S.fields.forEach(([k,,type])=>{const e=$('pf_'+k);o[k]=type==='number'?(e.value===''?'':+e.value.replace(',','.')):e.value.trim()});return o}
+function updStab(){const box=$('pStab');if(!box||$('pForm').hidden)return;const o=readForm();let w,b,v;const{w:cw,l:cl,b:cb}=current();
+ if(pKind==='weapon'){w=o;b=cb;v=cl?baseV0(o,cl):0}else if(pKind==='bullet'){w=cw;b=o;v=cl?+cl.v0:800}else{w=cw;b=db.bullets.find(x=>x.id===o.bulletId);v=+o.v0||800}
+ if(!w||!b){box.innerHTML='';return}const sg=miller(b,w,v,+st.temp,+st.press);
+ box.innerHTML=`<p class="hint">Stabilitet (Miller) med ${pKind==='weapon'?'kula i valgt ladning':'valgt våpen'} (1:${esc(w.twist)}): ${sgPill(sg)}. Over 1,4 er bra, 1,0–1,4 kan gi dårligere presisjon og BC.</p>`}
+
+/* ---------- events ---------- */
+function bindNum(id,key,cb){const e=$(id);e.value=st[key];e.addEventListener('input',()=>{st[key]=e.value===''?'':+e.value.replace(',','.');save();cb()})}
+function rerender(){renderShoot();if(!$('tab-tabell').hidden)renderTable();renderAir()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+ document.querySelectorAll('section.tab').forEach(s=>s.hidden=s.id!=='tab-'+b.dataset.tab);if(b.dataset.tab==='tabell')renderTable();if(b.dataset.tab==='profiler')renderList();if(b.dataset.tab==='skyt')renderShoot();window.scrollTo(0,0)});
+$('windClock').innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">kl. ${i+1}${i+1===3?' (fra høyre)':i+1===9?' (fra venstre)':i+1===12?' (motvind)':i+1===6?' (medvind)':''}</option>`).join('');
+$('windClock').value=st.windClock;$('windClock').onchange=e=>{st.windClock=+e.target.value;save();rerender()};
+$('dist').value=st.dist;$('dist').oninput=e=>{st.dist=+e.target.value;save();renderShoot()};
+const ws=$('windSpd'),wr=$('windRange');ws.value=wr.value=st.windSpd;
+ws.oninput=()=>{st.windSpd=+ws.value||0;wr.value=st.windSpd;save();rerender()};wr.oninput=()=>{st.windSpd=+wr.value;ws.value=st.windSpd;save();rerender()};
+bindNum('v0Over','v0Over',rerender);bindNum('angle','angle',rerender);bindNum('temp','temp',rerender);bindNum('press','press',rerender);bindNum('hum','hum',rerender);bindNum('alt','alt',()=>{});bindNum('mpsCm','mpsCm',rerender);
+$('altToP').onclick=()=>{st.press=Math.round(1013.25*Math.pow(1-2.25577e-5*(+st.alt||0),5.25588));$('press').value=st.press;save();rerender();toast('Trykk satt til '+st.press+' hPa')};
+const step=(k,d)=>()=>{st[k]+=d;save();renderShoot()};$('ePlus').onclick=step('eClk',1);$('eMinus').onclick=step('eClk',-1);$('wPlus').onclick=step('wClk',1);$('wMinus').onclick=step('wClk',-1);
+$('dialSolve').onclick=()=>{const p=at(st.dist);if(p){st.eClk=Math.round(p.elevMil/SOL.click);save();renderShoot()}};
+$('dialAll').onclick=()=>{const p=at(st.dist);if(p){st.eClk=Math.round(p.elevMil/SOL.click);st.wClk=Math.round(-p.latMil/SOL.click);save();renderShoot()}};
+$('dialZero').onclick=()=>{st.eClk=st.wClk=0;save();renderShoot()};
+$('selWeapon').onchange=e=>{st.weapon=e.target.value;save();rerender()};$('selLoad').onchange=e=>{st.load=e.target.value;save();rerender()};
+['tFrom','tTo','tStep'].forEach(i=>$(i).addEventListener('input',renderTable));
+$('ptabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;pKind=b.dataset.kind;pendingDel=null;$('pForm').hidden=true;document.querySelectorAll('#ptabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList()};
+$('pNew').onclick=()=>{if(pKind==='load'&&!db.bullets.length){toast('Lag en kule først');return}openForm(null)};
+$('pCancel').onclick=()=>{$('pForm').hidden=true};
+$('pFields').addEventListener('input',updStab);
+$('pForm').onsubmit=e=>{e.preventDefault();const S=SCHEMA[pKind],o=readForm();if(!o.name){toast('Gi profilen et navn');return}
+ if(pKind==='load'&&(!o.bulletId||!(o.v0>0))){toast('Ladningen trenger kule og V0');return}
+ if(pKind==='bullet'&&!(o.bc>0)){toast('Kula trenger en BC');return}
+ const list=db[S.list];if(editing){Object.assign(list.find(x=>x.id===editing),o)}else{o.id=uid();list.push(o);if(pKind==='weapon'&&!db.weapons.find(x=>x.id===st.weapon))st.weapon=o.id}
+ save();$('pForm').hidden=true;fillSelects();renderList();renderShoot();toast('Lagret')};
+$('plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const S=SCHEMA[pKind],list=db[S.list],id=b.dataset.id,o=list.find(x=>x.id===id);
+ if(b.dataset.act==='edit'){pendingDel=null;openForm(o);renderList()}
+ else if(b.dataset.act==='use'){if(pKind==='weapon')st.weapon=id;else st.load=id;save();fillSelects();renderList();toast('Valgt: '+o.name)}
+ else if(b.dataset.act==='del'){if(pKind==='bullet'&&db.loads.some(l=>l.bulletId===id)){toast('Kula brukes i en ladning');return}
+  if(pendingDel!==id){pendingDel=id;renderList();return}db[S.list]=list.filter(x=>x.id!==id);pendingDel=null;save();fillSelects();renderList();renderShoot();toast('Slettet')}};
+$('bCopy').onclick=()=>{const t=$('backup');navigator.clipboard?.writeText(t.value).then(()=>toast('Kopiert'),()=>{t.select();toast('Merk og kopier teksten')})??(t.select(),toast('Merk og kopier teksten'))};
+$('bImport').onclick=()=>{try{const d=JSON.parse($('backup').value);if(!Array.isArray(d.weapons)||!Array.isArray(d.bullets)||!Array.isArray(d.loads))throw 0;db=d;save();fillSelects();renderList();renderShoot();toast('Importert')}catch(e){toast('Teksten er ikke en gyldig sikkerhetskopi')}};
+window.addEventListener('resize',()=>renderShoot());
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>renderShoot());
+new MutationObserver(()=>renderShoot()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+fillSelects();renderAir();renderShoot();
+document.fonts&&document.fonts.ready.then(()=>renderShoot());
+</script>
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}</script>
+</body>
+</html>
