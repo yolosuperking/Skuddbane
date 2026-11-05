@@ -124,6 +124,7 @@ textarea{font-family:var(--f-num);font-size:12px;min-height:90px}
  <div class="card row">
   <label class="f"><span class="lbl">Våpen</span><select id="selWeapon"></select></label>
   <label class="f"><span class="lbl">Ladning</span><select id="selLoad"></select></label>
+  <label class="f"><span class="lbl">Lyddemper</span><select id="selSupp"></select></label>
  </div>
  <div class="card" style="display:flex;flex-direction:column;gap:12px">
   <div class="dist"><div class="big num" id="distOut">300<small>m</small></div>
@@ -185,6 +186,7 @@ textarea{font-family:var(--f-num);font-size:12px;min-height:90px}
   <button class="b" data-kind="weapon" aria-pressed="true">Våpen</button>
   <button class="b" data-kind="bullet" aria-pressed="false">Kuler</button>
   <button class="b" data-kind="load" aria-pressed="false">Ladninger</button>
+  <button class="b" data-kind="supp" aria-pressed="false">Lyddempere</button>
  </div>
  <div class="plist" id="plist"></div>
  <button class="b" id="pNew">+ Ny</button>
@@ -251,12 +253,14 @@ const SAMPLE={weapons:[{id:'w1',name:'Eksempel: .308 rifle',caliber:'.308 Win',b
  bullets:[{id:'b1',name:'Eksempel: 175 gr match HPBT',diam:7.82,weight:175,length:31.5,bc:0.243,model:'G7'}],
  loads:[{id:'l1',name:'Eksempel: 175 gr fabrikk',bulletId:'b1',powder:'',charge:'',oal:'',v0:792,refBarrel:61,refTemp:15,tempSens:0.6,notes:'V0 oppgitt for 24" løp'}]};
 let db=store.get('sb-db',null)||JSON.parse(JSON.stringify(SAMPLE));
-const PRESETS={weapons:[{id:'w-xbolt655',name:'Browning X-Bolt 6,5x55',caliber:'6,5x55 Swedish',barrel:53,twist:8,dir:'H',sh:45,zero:100,click:0.1,notes:'Løpslengde varierer med modell (46–56 cm). Sjekk twist og siktehøyde på ditt eksemplar.'}],
- bullets:[{id:'b-oryx156',name:'Norma Oryx 156 gr (6,5 mm)',diam:6.71,weight:156,length:30.7,bc:0.348,model:'G1'}],
- loads:[{id:'l-oryx655',name:'Norma Oryx 6,5x55 156 gr',bulletId:'b-oryx156',powder:'Fabrikkpatron',charge:'',oal:'',v0:760,refBarrel:61,refTemp:15,tempSens:0,notes:'Norma oppgir V0 760 m/s med 61 cm (24") løp. Kulelengde er estimert.'}]};
-(function(){let seeded=store.get('sb-seeded',[]);let added=false;['weapons','bullets','loads'].forEach(k=>PRESETS[k].forEach(p=>{if(!seeded.includes(p.id)){if(!db[k].find(x=>x.id===p.id))db[k].push(JSON.parse(JSON.stringify(p)));seeded.push(p.id);added=true}}));
- if(added){store.set('sb-seeded',seeded);store.set('sb-db',db);try{const s=JSON.parse(localStorage.getItem('sb-state')||'{}');s.weapon='w-xbolt655';s.load='l-oryx655';s.eClk=0;s.wClk=0;localStorage.setItem('sb-state',JSON.stringify(s))}catch(e){}}})();
-if(!store.get('sb-state',null))store.set('sb-state',{weapon:'w-xbolt655',load:'l-oryx655'});
+if(!Array.isArray(db.supps))db.supps=[];
+const PRESETS={weapons:[{id:'w-308-50',name:'.308 Win kappet 50 cm',caliber:'.308 Winchester',barrel:50,twist:11,dir:'H',sh:45,zero:100,click:0.1,zeroSupp:'s-atec',notes:'Løp kappet til 50 cm. Twist 1:11 er vanligst for .308 – sjekk ditt løp. Innskutt med lyddemper.'},{id:'w-xbolt655',name:'Browning X-Bolt 6,5x55',caliber:'6,5x55 Swedish',barrel:53,twist:8,dir:'H',sh:45,zero:100,click:0.1,notes:'Løpslengde varierer med modell (46–56 cm). Sjekk twist og siktehøyde på ditt eksemplar.'}],
+ bullets:[{id:'b-jm150',name:'Norma Jaktmatch 150 gr FMJ (.308)',diam:7.82,weight:150,length:28.4,bc:0.423,model:'G1'},{id:'b-oryx156',name:'Norma Oryx 156 gr (6,5 mm)',diam:6.71,weight:156,length:30.7,bc:0.348,model:'G1'}],
+ loads:[{id:'l-jm308',name:'Norma Jaktmatch .308 9,7 g',bulletId:'b-jm150',powder:'Fabrikkpatron',charge:'',oal:'',v0:810,refBarrel:61,refTemp:15,tempSens:0,notes:'Norma oppgir V0 810 m/s med 61 cm (24") løp. Kulelengde er estimert.'},{id:'l-oryx655',name:'Norma Oryx 6,5x55 156 gr',bulletId:'b-oryx156',powder:'Fabrikkpatron',charge:'',oal:'',v0:760,refBarrel:61,refTemp:15,tempSens:0,notes:'Norma oppgir V0 760 m/s med 61 cm (24") løp. Kulelengde er estimert.'}],
+ supps:[{id:'s-atec',name:'A-Tec lyddemper',model:'',dv:5,poiE:0,poiW:0,length:'',weight:'',notes:'Fyll inn modell. V0-endring er et anslag (lyddemper gir ofte +0–10 m/s). Mål treffpunktflytt på banen.'}]};
+(function(){let seeded=store.get('sb-seeded',[]);let added=false;let nw=null,nl=null;['weapons','bullets','loads','supps'].forEach(k=>PRESETS[k].forEach(p=>{if(!seeded.includes(p.id)){if(!db[k].find(x=>x.id===p.id))db[k].push(JSON.parse(JSON.stringify(p)));seeded.push(p.id);added=true;if(k==='weapons'&&!nw)nw=p;if(k==='loads'&&!nl)nl=p.id}}));
+ if(added){store.set('sb-seeded',seeded);store.set('sb-db',db);try{const s=JSON.parse(localStorage.getItem('sb-state')||'{}');if(nw){s.weapon=nw.id;s.supp=nw.zeroSupp||''}if(nl)s.load=nl;s.eClk=0;s.wClk=0;localStorage.setItem('sb-state',JSON.stringify(s))}catch(e){}}})();
+if(!store.get('sb-state',null))store.set('sb-state',{weapon:'w-308-50',load:'l-jm308',supp:'s-atec'});
 const DEF={weapon:'w1',load:'l1',dist:300,windSpd:4,windClock:9,temp:10,press:1013,hum:60,alt:0,mpsCm:3,eClk:0,wClk:0,v0Over:'',angle:0};
 let st=Object.assign({},DEF,store.get('sb-state',{}));
 const save=()=>{store.set('sb-db',db);store.set('sb-state',st)};
@@ -273,20 +277,23 @@ function current(){const w=db.weapons.find(x=>x.id===st.weapon)||db.weapons[0];c
  const b=l&&db.bullets.find(x=>x.id===l.bulletId);return{w,l,b}}
 function baseV0(w,l){if(+st.v0Over>0)return +st.v0Over;let v=+l.v0;if(w.barrel&&l.refBarrel)v+=(w.barrel-l.refBarrel)*st.mpsCm;return v}
 let SOL=null;
+const suppOf=id=>id?db.supps.find(x=>x.id===id):null;
 function solve(){const{w,l,b}=current();if(!w||!l||!b||!(+l.v0>0||+st.v0Over>0)||!(+b.bc>0)){SOL=null;return}
- const v0z=baseV0(w,l);
- const v0=+st.v0Over>0?v0z:v0z+(l.tempSens?(st.temp-(+l.refTemp||15))*l.tempSens:0);
+ const sc=suppOf(st.supp),sz=suppOf(w.zeroSupp);const dvC=sc?(+sc.dv||0):0,dvZ=sz?(+sz.dv||0):0;
+ const over=+st.v0Over>0;const v0z=over?+st.v0Over-dvC+dvZ:baseV0(w,l)+dvZ;
+ const v0=over?+st.v0Over:baseV0(w,l)+dvC+(l.tempSens?(st.temp-(+l.refTemp||15))*l.tempSens:0);
+ const shE=(sc?(+sc.poiE||0):0)-(sz?(+sz.poiE||0):0),shW=(sc?(+sc.poiW||0):0)-(sz?(+sz.poiW||0):0);
  const sh=(+w.sh||40)/1000,zero=Math.max(+w.zero||100,1);
  const za=air(15,1013.25,50);const ang=zeroAngle({model:b.model,bc:+b.bc,v0:v0z,sh,zero,rho:za.rho,c:za.c});
  const a=air(+st.temp,+st.press,+st.hum);const o={model:b.model,bc:+b.bc,v0,sh,zero,rho:a.rho,c:a.c};
  const r=fly(o,ang,1600,true);const sg=miller(b,w,v0,+st.temp,+st.press);
- SOL={w,l,b,v0,r,sg,a,click:+w.click||0.1}}
+ SOL={w,l,b,v0,r,sg,a,shE,shW,sc,click:+w.click||0.1}}
 function at(d){if(!SOL||d<=0)return null;const th=(+st.angle||0)*Math.PI/180;const dh=Math.max(1,Math.round(d*Math.cos(th)));
  const r=SOL.r;if(dh>1600||!Number.isFinite(r.y[dh]))return null;
  const y=r.y[dh],t=r.t[dh],v=r.v[dh];const cw=-st.windSpd*Math.sin(st.windClock*Math.PI/6);
  const drift=cw*(t-dh/SOL.v0);let spin=0;if(SOL.sg)spin=1.25*(SOL.sg+1.2)*Math.pow(t,1.83)*0.0254*(SOL.w.dir==='V'?-1:1);
- const lat=drift+spin;const m=SOL.b.weight*6.479891e-5;
- return{d,y,t,v,drift,spin,lat,elevMil:-y/dh*1000,latMil:lat/d*1000,E:0.5*m*v*v}}
+ const poiY=SOL.shE*d/1000,poiX=SOL.shW*d/1000;const lat=drift+spin+poiX;const yy=y+poiY;const m=SOL.b.weight*6.479891e-5;
+ return{d,y:yy,t,v,drift,spin,lat,elevMil:-y/dh*1000-SOL.shE,latMil:lat/d*1000,E:0.5*m*v*v}}
 
 /* ---------- scope ---------- */
 const cv=$('scope'),ctx=cv.getContext('2d');
@@ -349,7 +356,8 @@ function renderTable(){solve();const tb=$('tbody');tb.innerHTML='';if(!SOL){$('t
   h+=`<tr class="${z?'zero':''}"><td>${d}</td><td>${fmt(p.y*100,0)}</td><td>${fmt(p.elevMil,1)}</td><td>${Math.round(p.elevMil/SOL.click)}</td><td>${fmt(-p.latMil,1)}</td><td>${fmt(p.lat*100,0)}</td><td>${fmt(p.v,0)}</td><td>${fmt(p.E,0)}</td><td>${fmt(p.t,2)}</td></tr>`}
  tb.innerHTML=h||'<tr><td colspan="9">Ingen rader</td></tr>'}
 function renderAir(){const a=air(+st.temp,+st.press,+st.hum);$('airInfo').textContent=`Lufttetthet ${fmt(a.rho,3)} kg/m³ · lydfart ${fmt(a.c,0)} m/s`}
-function fillSelects(){const sw=$('selWeapon'),sl=$('selLoad');
+function fillSelects(){const sw=$('selWeapon'),sl=$('selLoad'),ss=$('selSupp');
+ ss.innerHTML='<option value="">Uten lyddemper</option>'+db.supps.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');if(st.supp&&!suppOf(st.supp))st.supp='';ss.value=st.supp||'';
  sw.innerHTML=db.weapons.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('')||'<option value="">Ingen våpen lagret</option>';
  sl.innerHTML=db.loads.map(l=>{const b=db.bullets.find(x=>x.id===l.bulletId);return`<option value="${l.id}">${esc(l.name)}${b?' – '+esc(b.name):''}</option>`}).join('')||'<option value="">Ingen ladninger lagret</option>';
  if(!db.weapons.find(x=>x.id===st.weapon)&&db.weapons[0])st.weapon=db.weapons[0].id;if(!db.loads.find(x=>x.id===st.load)&&db.loads[0])st.load=db.loads[0].id;
@@ -358,23 +366,26 @@ function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt
 
 /* ---------- profiles ---------- */
 const SCHEMA={
- weapon:{list:'weapons',t:'våpen',def:{dir:'H',zero:100,click:0.1,sh:45},fields:[['name','Navn','text',{wide:1}],['caliber','Kaliber','text'],['barrel','Løpslengde cm','number',{step:.1}],['twist','Twist 1:x (tommer)','number',{step:.5}],['dir','Riflingretning','select',[['H','Høyre'],['V','Venstre']]],['sh','Siktehøyde mm','number'],['zero','Innskutt avstand m','number'],['click','Klikkverdi mil','number',{step:.01}],['notes','Notater','text',{wide:1}]],
+ weapon:{list:'weapons',t:'våpen',def:{dir:'H',zero:100,click:0.1,sh:45},fields:[['name','Navn','text',{wide:1}],['caliber','Kaliber','text'],['barrel','Løpslengde cm','number',{step:.1}],['twist','Twist 1:x (tommer)','number',{step:.5}],['dir','Riflingretning','select',[['H','Høyre'],['V','Venstre']]],['sh','Siktehøyde mm','number'],['zero','Innskutt avstand m','number'],['click','Klikkverdi mil','number',{step:.01}],['zeroSupp','Innskutt med','supp'],['notes','Notater','text',{wide:1}]],
   sub:o=>`${o.caliber||''} · ${o.barrel?fmt(+o.barrel,1)+' cm ('+fmt(o.barrel/2.54,1)+'")':'?'} · 1:${o.twist||'?'} · innskutt ${o.zero||'?'} m`},
  bullet:{list:'bullets',t:'kule',def:{model:'G7'},fields:[['name','Navn','text',{wide:1}],['diam','Diameter mm','number',{step:.01}],['weight','Vekt grain','number',{step:.1}],['length','Lengde mm','number',{step:.1}],['bc','BC','number',{step:.001}],['model','Dragmodell','select',[['G7','G7'],['G1','G1']]]],
   sub:o=>`${o.weight||'?'} gr · Ø${o.diam||'?'} mm · ${o.length||'?'} mm · BC ${o.bc||'?'} ${o.model}`},
+ supp:{list:'supps',t:'lyddemper',def:{dv:5,poiE:0,poiW:0},fields:[['name','Navn','text',{wide:1}],['model','Modell / moduler','text',{ph:'f.eks. Optima, H2 – 2 moduler'}],['dv','V0-endring m/s','number',{step:1}],['poiE','Treffpunkt flytter opp (mil)','number',{step:.1}],['poiW','Treffpunkt flytter høyre (mil)','number',{step:.1}],['length','Lengde mm','number'],['weight','Vekt g','number'],['notes','Notater','text',{wide:1}]],
+  sub:o=>`${o.model||'modell ikke satt'} · V0 ${(+o.dv>=0?'+':'')}${o.dv||0} m/s · treffpunkt ${fmt(+o.poiE||0,1)} opp / ${fmt(+o.poiW||0,1)} høyre mil`},
  load:{list:'loads',t:'ladning',def:{refTemp:15,tempSens:0.5},fields:[['name','Navn','text',{wide:1}],['bulletId','Kule','bullet'],['powder','Krutt','text'],['charge','Kruttmengde grain','text',{ph:'fra ladetabell'}],['oal','Patronlengde OAL mm','number',{step:.01}],['v0','V0 m/s','number'],['refBarrel','V0 gjelder for løp cm','number',{step:.1}],['refTemp','V0 gjelder ved °C','number'],['tempSens','Temp.-følsomhet m/s per °C','number',{step:.1}],['notes','Notater','text',{wide:1}]],
   sub:o=>{const b=db.bullets.find(x=>x.id===o.bulletId);return`${b?b.name:'ingen kule'} · ${o.powder||'krutt ikke oppgitt'}${o.charge?' '+o.charge+' gr':''} · V0 ${o.v0||'?'} m/s @ ${o.refBarrel||'?'} cm`}}};
 let pKind='weapon',editing=null,pendingDel=null;
 function renderList(){const S=SCHEMA[pKind],items=db[S.list];const el=$('plist');
- el.innerHTML=items.length?items.map(o=>{const sel=(pKind==='weapon'&&o.id===st.weapon)||(pKind==='load'&&o.id===st.load);
+ el.innerHTML=items.length?items.map(o=>{const sel=(pKind==='weapon'&&o.id===st.weapon)||(pKind==='load'&&o.id===st.load)||(pKind==='supp'&&o.id===st.supp);
   return`<div class="pitem"><div class="t"><b>${esc(o.name)}${sel?' <span class="pill ok">i bruk</span>':''}</b><span>${esc(S.sub(o))}</span></div>
   ${pKind!=='bullet'&&!sel?`<button class="b" data-act="use" data-id="${o.id}">Bruk</button>`:''}<button class="b" data-act="edit" data-id="${o.id}">Endre</button><button class="b danger" data-act="del" data-id="${o.id}">${pendingDel===o.id?'Bekreft':'Slett'}</button></div>`}).join('')
-  :`<p class="hint">Ingen ${S.t==='kule'?'kuler':S.t==='ladning'?'ladninger':'våpen'} lagret ennå. Trykk «+ Ny» for å legge til.</p>`;
+  :`<p class="hint">Ingen ${S.t==='kule'?'kuler':S.t==='ladning'?'ladninger':S.t==='lyddemper'?'lyddempere':'våpen'} lagret ennå. Trykk «+ Ny» for å legge til.</p>`;
  $('pNew').textContent='+ Ny '+S.t;$('backup').value=JSON.stringify(db)}
 function openForm(o){const S=SCHEMA[pKind];editing=o?o.id:null;const v=o||Object.assign({},S.def);
  $('pFormTitle').textContent=(o?'Endre ':'Ny ')+S.t;
  $('pFields').innerHTML=S.fields.map(([k,lab,type,opt])=>{const val=v[k]??'';let inp;
   if(type==='select')inp=`<select id="pf_${k}">${opt.map(([a,b])=>`<option value="${a}"${a==val?' selected':''}>${b}</option>`).join('')}</select>`;
+  else if(type==='supp')inp=`<select id="pf_${k}"><option value="">Uten lyddemper</option>${db.supps.map(x=>`<option value="${x.id}"${x.id==val?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`;
   else if(type==='bullet')inp=`<select id="pf_${k}">${db.bullets.map(b=>`<option value="${b.id}"${b.id==val?' selected':''}>${esc(b.name)}</option>`).join('')||'<option value="">Lag en kule først</option>'}</select>`;
   else inp=`<input id="pf_${k}" type="${type}" ${type==='number'?`step="${(opt&&opt.step)||1}" inputmode="decimal"`:''} value="${esc(val)}" placeholder="${(opt&&opt.ph)||''}">`;
   return`<label class="f${opt&&opt.wide?' wide':''}"><span class="lbl">${lab}</span>${inp}</label>`}).join('');
@@ -401,7 +412,7 @@ const step=(k,d)=>()=>{st[k]+=d;save();renderShoot()};$('ePlus').onclick=step('e
 $('dialSolve').onclick=()=>{const p=at(st.dist);if(p){st.eClk=Math.round(p.elevMil/SOL.click);save();renderShoot()}};
 $('dialAll').onclick=()=>{const p=at(st.dist);if(p){st.eClk=Math.round(p.elevMil/SOL.click);st.wClk=Math.round(-p.latMil/SOL.click);save();renderShoot()}};
 $('dialZero').onclick=()=>{st.eClk=st.wClk=0;save();renderShoot()};
-$('selWeapon').onchange=e=>{st.weapon=e.target.value;save();rerender()};$('selLoad').onchange=e=>{st.load=e.target.value;save();rerender()};
+$('selWeapon').onchange=e=>{st.weapon=e.target.value;const w=db.weapons.find(x=>x.id===st.weapon);st.supp=(w&&w.zeroSupp&&suppOf(w.zeroSupp))?w.zeroSupp:'';$('selSupp').value=st.supp;save();rerender()};$('selSupp').onchange=e=>{st.supp=e.target.value;save();rerender()};$('selLoad').onchange=e=>{st.load=e.target.value;save();rerender()};
 ['tFrom','tTo','tStep'].forEach(i=>$(i).addEventListener('input',renderTable));
 $('ptabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;pKind=b.dataset.kind;pendingDel=null;$('pForm').hidden=true;document.querySelectorAll('#ptabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList()};
 $('pNew').onclick=()=>{if(pKind==='load'&&!db.bullets.length){toast('Lag en kule først');return}openForm(null)};
@@ -414,8 +425,9 @@ $('pForm').onsubmit=e=>{e.preventDefault();const S=SCHEMA[pKind],o=readForm();if
  save();$('pForm').hidden=true;fillSelects();renderList();renderShoot();toast('Lagret')};
 $('plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const S=SCHEMA[pKind],list=db[S.list],id=b.dataset.id,o=list.find(x=>x.id===id);
  if(b.dataset.act==='edit'){pendingDel=null;openForm(o);renderList()}
- else if(b.dataset.act==='use'){if(pKind==='weapon')st.weapon=id;else st.load=id;save();fillSelects();renderList();toast('Valgt: '+o.name)}
+ else if(b.dataset.act==='use'){if(pKind==='weapon'){st.weapon=id;const w=db.weapons.find(x=>x.id===id);st.supp=(w&&w.zeroSupp&&suppOf(w.zeroSupp))?w.zeroSupp:''}else if(pKind==='supp')st.supp=id;else st.load=id;save();fillSelects();renderList();toast('Valgt: '+o.name)}
  else if(b.dataset.act==='del'){if(pKind==='bullet'&&db.loads.some(l=>l.bulletId===id)){toast('Kula brukes i en ladning');return}
+  if(pKind==='supp'){db.weapons.forEach(w=>{if(w.zeroSupp===id&&pendingDel===id)w.zeroSupp=''});if(pendingDel===id&&st.supp===id)st.supp=''}
   if(pendingDel!==id){pendingDel=id;renderList();return}db[S.list]=list.filter(x=>x.id!==id);pendingDel=null;save();fillSelects();renderList();renderShoot();toast('Slettet')}};
 $('bCopy').onclick=()=>{const t=$('backup');navigator.clipboard?.writeText(t.value).then(()=>toast('Kopiert'),()=>{t.select();toast('Merk og kopier teksten')})??(t.select(),toast('Merk og kopier teksten'))};
 $('bImport').onclick=()=>{try{const d=JSON.parse($('backup').value);if(!Array.isArray(d.weapons)||!Array.isArray(d.bullets)||!Array.isArray(d.loads))throw 0;db=d;save();fillSelects();renderList();renderShoot();toast('Importert')}catch(e){toast('Teksten er ikke en gyldig sikkerhetskopi')}};
